@@ -1,0 +1,29 @@
+# Rust build artifacts
+/target/
+
+# Debug files
+*.pdb
+
+# Dependencies
+Cargo.lock
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Node modules and build files for webpage
+/webpage/node_modules/
+/webpage/.cache/
+/webpage/dist/
+*.log
+npm-debug.log* 
