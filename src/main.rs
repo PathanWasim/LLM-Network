@@ -13,6 +13,7 @@ use rust_embed::Embed;
 use tokio::sync::Mutex;
 use udp::{periodic_broadcast, receive_broadcast};
 use tcp::{connect_to_peers, listen_for_connections};
+use conversation::CONVERSATION_STORE;
 
 #[derive(Embed)]
 #[folder = "./webpage/build/"]
@@ -65,6 +66,11 @@ async fn main() -> std::io::Result<()> {
     if let Err(e) = persistence::init_conversations_dir().await {
         eprintln!("Error initializing conversations directory: {}", e);
         return Err(e);
+    }
+
+    // Load saved conversations
+    if let Err(e) = CONVERSATION_STORE.load_saved_conversations().await {
+        eprintln!("Error loading saved conversations: {}", e);
     }
 
     let received_ips = Arc::new(Mutex::new(HashSet::new()));
