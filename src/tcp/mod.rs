@@ -5,7 +5,7 @@ use tokio::time::sleep;
 use std::sync::Arc;
 use std::time::Duration;
 use std::path::{Path, PathBuf};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use tokio::fs;
 use crate::conversation::{ChatMessage, Conversation, CONVERSATION_STORE};
 use crate::persistence::CONVERSATIONS_DIR;
@@ -15,6 +15,7 @@ use reqwest::Client;
 const RECEIVED_DIR: &str = "received";
 const PORT: i32 = 7878;
 const SYNC_INTERVAL: Duration = Duration::from_secs(30);
+const OLLAMA_PORT: i32 = 11434;
 const OLLAMA_CHECK_URL: &str = "http://127.0.0.1:11434/api/tags";
 
 #[derive(Debug)]
@@ -35,7 +36,16 @@ enum Message {
     LLMAccessResponse {
         granted: bool,
         message: String,
+        llm_host: Option<String>,
+        llm_port: Option<i32>,
     },
+}
+
+// Store LLM-capable peers, authorized peers, and LLM connection details
+lazy_static! {
+    static ref LLM_PEERS: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
+    static ref AUTHORIZED_PEERS: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
+    static ref LLM_CONNECTIONS: Arc<Mutex<HashMap<String, (String, i32)>>> = Arc::new(Mutex::new(HashMap::new()));
 }
 
 impl Message {
@@ -74,9 +84,11 @@ impl Message {
                 stream.write_all(&len.to_le_bytes()).await?;
                 stream.write_all(data.as_bytes()).await?;
             }
-            Message::LLMAccessResponse { granted, message } => {
+            Message::LLMAccessResponse { granted, message, llm_host, llm_port } => {
                 stream.write_all(b"LRES:").await?;
-                let data = format!("{}|{}", granted, message);
+                let host_str = llm_host.as_deref().unwrap_or("");
+                let port_str = llm_port.map(|p| p.to_string()).unwrap_or_default();
+                let data = format!("{}|{}|{}|{}", granted, message, host_str, port_str);
                 let len = data.len() as u64;
                 stream.write_all(&len.to_le_bytes()).await?;
                 stream.write_all(data.as_bytes()).await?;
@@ -133,10 +145,17 @@ impl Message {
             }
             b"LRES:" => {
                 let content = String::from_utf8_lossy(&data);
-                if let Some((granted, message)) = content.split_once('|') {
+                let parts: Vec<&str> = content.split('|').collect();
+                if parts.len() == 4 {
+                    let granted = parts[0].parse().unwrap_or(false);
+                    let message = parts[1].to_string();
+                    let llm_host = if !parts[2].is_empty() { Some(parts[2].to_string()) } else { None };
+                    let llm_port = if !parts[3].is_empty() { parts[3].parse().ok() } else { None };
                     Ok(Some(Message::LLMAccessResponse {
-                        granted: granted.parse().unwrap_or(false),
-                        message: message.to_string(),
+                        granted,
+                        message,
+                        llm_host,
+                        llm_port,
                     }))
                 } else {
                     Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid LLM response format"))
@@ -145,12 +164,6 @@ impl Message {
             _ => Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unknown message type")),
         }
     }
-}
-
-// Store LLM-capable peers and authorized peers
-lazy_static! {
-    static ref LLM_PEERS: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
-    static ref AUTHORIZED_PEERS: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
 }
 
 // Check if Ollama is running
@@ -245,10 +258,12 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                     if has_llm {
                         println!("TCP: Received LLM access request from {} ({}): {}", addr, peer_name, reason);
                         
-                        // Auto-approve for now - you can add your own approval logic here
+                        // Include our IP and Ollama port in the response
                         let response = Message::LLMAccessResponse {
                             granted: true,
                             message: "Access granted automatically".to_string(),
+                            llm_host: Some(addr.ip().to_string()),
+                            llm_port: Some(OLLAMA_PORT),
                         };
                         
                         if let Err(e) = response.send(&mut stream).await {
@@ -256,24 +271,34 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                         } else {
                             let mut authorized = AUTHORIZED_PEERS.lock().await;
                             authorized.insert(addr.ip().to_string());
-                            println!("TCP: Granted LLM access to {} ({})", addr, peer_name);
+                            println!("TCP: Granted LLM access to {} ({}) with port {}", addr, peer_name, OLLAMA_PORT);
                         }
                     } else {
                         let response = Message::LLMAccessResponse {
                             granted: false,
                             message: "This peer does not have LLM capability".to_string(),
+                            llm_host: None,
+                            llm_port: None,
                         };
                         if let Err(e) = response.send(&mut stream).await {
                             eprintln!("TCP: Failed to send LLM access response to {}: {}", addr, e);
                         }
                     }
                 }
-                Message::LLMAccessResponse { granted, message } => {
-                    // Handle received LLM access response
+                Message::LLMAccessResponse { granted, message, llm_host, llm_port } => {
                     if granted {
                         let mut authorized = AUTHORIZED_PEERS.lock().await;
                         authorized.insert(addr.ip().to_string());
-                        println!("TCP: LLM access granted by {} - {}", addr, message);
+                        
+                        // Store LLM connection details if provided
+                        if let (Some(host), Some(port)) = (llm_host, llm_port) {
+                            let mut connections = LLM_CONNECTIONS.lock().await;
+                            connections.insert(addr.ip().to_string(), (host, port));
+                            println!("TCP: LLM access granted by {} - {} (LLM available at {}:{})", 
+                                   addr, message, host, port);
+                        } else {
+                            println!("TCP: LLM access granted by {} - {}", addr, message);
+                        }
                     } else {
                         println!("TCP: LLM access denied by {} - {}", addr, message);
                     }

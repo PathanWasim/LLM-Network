@@ -4,8 +4,11 @@ use serde::{Deserialize, Serialize};
 use reqwest::Client;
 use chrono::Utc;
 use crate::conversation::{ChatMessage, CONVERSATION_STORE};
+use crate::tcp::LLM_CONNECTIONS;
+use std::time::Duration;
 
-const OLLAMA_HOST: &str = "http://127.0.0.1:11434";
+const LOCAL_OLLAMA_HOST: &str = "http://127.0.0.1:11434";
+const REMOTE_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Deserialize)]
 pub struct ChatRequest {
@@ -47,52 +50,70 @@ struct OllamaResponse {
     eval_duration: Option<i64>,
 }
 
-#[post("/chat")]
-pub async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse, Error> {
+async fn try_local_llm(req: &OllamaRequest) -> Result<String, String> {
     let client = Client::new();
-    let ollama_req = OllamaRequest {
-        model: "qwen2.5-coder:7b".to_string(),
-        messages: vec![
-            OllamaMessage {
-                role: "user".to_string(),
-                content: req.message.clone(),
-            }
-        ],
-    };
-    
-    let response = match client
-        .post(format!("{}/api/chat", OLLAMA_HOST))
-        .json(&ollama_req)
+    let response = client
+        .post(format!("{}/api/chat", LOCAL_OLLAMA_HOST))
+        .json(&req)
         .send()
-        .await {
-            Ok(resp) => resp,
-            Err(e) => {
-                eprintln!("Error: Failed to connect to LLM server: {}", e);
-                return Ok(HttpResponse::ServiceUnavailable()
-                    .json(serde_json::json!({
-                        "error": "Failed to connect to LLM server",
-                        "details": format!("Connection error: {}. Please ensure Ollama is running on {}", e, OLLAMA_HOST)
-                    })));
-            }
-        };
+        .await
+        .map_err(|e| format!("Failed to connect to local LLM: {}", e))?;
 
     if !response.status().is_success() {
-        eprintln!("Error: LLM server returned status: {}", response.status());
-        return Ok(HttpResponse::BadGateway()
-            .json(serde_json::json!({
-                "error": "LLM server error",
-                "status": response.status().as_u16(),
-                "details": format!("Server returned: {}", response.status())
-            })));
+        return Err(format!("Local LLM error: {}", response.status()));
+    }
+
+    let body = response.text().await
+        .map_err(|e| format!("Failed to get local LLM response: {}", e))?;
+
+    process_ollama_response(&body)
+}
+
+async fn try_remote_llm(req: &OllamaRequest) -> Result<String, String> {
+    let connections = LLM_CONNECTIONS.lock().await;
+    
+    // Try each known LLM connection
+    for (peer, (host, port)) in connections.iter() {
+        let client = Client::builder()
+            .timeout(REMOTE_REQUEST_TIMEOUT)
+            .build()
+            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+        let remote_url = format!("http://{}:{}/api/chat", host, port);
+        
+        println!("Attempting to use remote LLM at {}", remote_url);
+        
+        match client.post(&remote_url)
+            .json(&req)
+            .send()
+            .await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        let body = response.text().await
+                            .map_err(|e| format!("Failed to get remote LLM response: {}", e))?;
+                        
+                        match process_ollama_response(&body) {
+                            Ok(result) => {
+                                println!("Successfully used remote LLM from peer {}", peer);
+                                return Ok(result)
+                            },
+                            Err(e) => println!("Failed to process response from {}: {}", peer, e),
+                        }
+                    } else {
+                        println!("Remote LLM {} returned error status: {}", peer, response.status());
+                    }
+                },
+                Err(e) => println!("Failed to connect to remote LLM {}: {}", peer, e),
+            }
     }
     
-    let mut full_response = String::new();
-    let body = response.text().await.map_err(|e| {
-        eprintln!("Error: Failed to get LLM response: {}", e);
-        actix_web::error::ErrorInternalServerError(e)
-    })?;
+    Err("No available LLM connections responded successfully".to_string())
+}
 
+fn process_ollama_response(body: &str) -> Result<String, String> {
+    let mut full_response = String::new();
     let mut response_complete = false;
+
     for line in body.lines() {
         if let Ok(resp) = serde_json::from_str::<OllamaResponse>(line) {
             full_response.push_str(&resp.message.content);
@@ -103,25 +124,48 @@ pub async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse, Error> {
     }
 
     if !response_complete {
-        eprintln!("Error: Incomplete response from LLM");
-        return Ok(HttpResponse::InternalServerError()
-            .json(serde_json::json!({
-                "error": "Incomplete response from LLM",
-                "details": "The model response stream ended unexpectedly"
-            })));
+        return Err("Incomplete response from LLM".to_string());
     }
 
     if full_response.trim().is_empty() {
-        eprintln!("Error: Empty response from LLM");
-        return Ok(HttpResponse::InternalServerError()
-            .json(serde_json::json!({
-                "error": "Empty response from LLM",
-                "details": "The model returned an empty response. This might indicate an issue with the model loading or processing."
-            })));
+        return Err("Empty response from LLM".to_string());
     }
 
+    Ok(full_response)
+}
+
+#[post("/chat")]
+pub async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse, Error> {
+    let ollama_req = OllamaRequest {
+        model: "qwen2.5-coder:7b".to_string(),
+        messages: vec![
+            OllamaMessage {
+                role: "user".to_string(),
+                content: req.message.clone(),
+            }
+        ],
+    };
+
+    // Try local LLM first
+    let response = match try_local_llm(&ollama_req).await {
+        Ok(response) => response,
+        Err(local_error) => {
+            // If local fails, try remote LLMs
+            match try_remote_llm(&ollama_req).await {
+                Ok(response) => response,
+                Err(remote_error) => {
+                    return Ok(HttpResponse::ServiceUnavailable()
+                        .json(serde_json::json!({
+                            "error": "No available LLM service",
+                            "details": format!("Local error: {}. Remote error: {}", local_error, remote_error)
+                        })));
+                }
+            }
+        }
+    };
+
     let chat_message = ChatMessage {
-        content: full_response,
+        content: response,
         timestamp: Utc::now(),
         sender: req.sender.clone(),
     };
