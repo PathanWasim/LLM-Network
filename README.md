@@ -23,8 +23,8 @@ A revolutionary distributed peer-to-peer neural network that enables seamless AI
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Wasim2k5/NeuroMesh.git
-cd NeuroMesh
+git clone https://github.com/PathanWasim/LLM-Network.git
+cd LLM-Network
 ```
 
 2. Start NeuroMesh (automated setup):
