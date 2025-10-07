@@ -195,7 +195,7 @@ pub async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse, Error> {
     CONVERSATION_STORE.add_message("local".to_string(), question_message).await;
 
     let ollama_req = OllamaRequest {
-        model: "smartgpt:latest".to_string(),
+        model: "qwen3:8b".to_string(),
         messages: vec![
             OllamaMessage {
                 role: "user".to_string(),

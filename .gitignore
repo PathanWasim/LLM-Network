@@ -16,6 +16,7 @@ Cargo.lock
 # Environment files
 .env
 .env.local
+.kiro
 
 # System Files
 .DS_Store
