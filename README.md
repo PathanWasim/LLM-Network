@@ -1,90 +1,71 @@
-# NeuroMesh - Distributed AI Intelligence Network
+# NeuroMesh - Distributed LLM Network
 
-A revolutionary distributed peer-to-peer neural network that enables seamless AI collaboration across multiple nodes. Experience the future of distributed artificial intelligence with real-time neural synchronization and intelligent mesh networking.
-
-## ✨ Features
-
-- 🧠 **Neural Mesh Architecture**: Advanced distributed neural network with TCP/UDP mesh protocols
-- 🔍 **Intelligent Node Discovery**: Autonomous network scanning and neural node detection
-- 🤖 **Distributed AI Intelligence**: Seamless neural processing and load balancing across mesh nodes
-- ⚡ **Real-time Neural Sync**: Instant neural state synchronization across the entire mesh
-- 💾 **Neural Memory**: Persistent neural conversation history and mesh data storage
-- 🎨 **Neural Interface**: Beautiful, responsive React-based neural control interface
-- 🔒 **Mesh Security**: Built-in neural authentication and secure mesh communication
-- 📊 **Neural Monitoring**: Comprehensive neural mesh monitoring and performance analytics
-
-## Requirements
-
-- Rust (latest stable version)
-- Node.js (for neural interface)
-- Ollama (for neural LLM capabilities)
+NeuroMesh is a peer-to-peer network that allows sharing of Large Language Model (LLM) capabilities across multiple devices. Connect to friends and access their LLMs seamlessly.
 
 ## Quick Start
 
-### 🚀 **Recommended: Build from Source** (Avoids Antivirus Issues)
+### Prerequisites
+- [Ollama](https://ollama.ai/) installed (for hosting LLMs)
+- Windows Firewall configured (see setup below)
 
-1. **Install Prerequisites:**
-   ```bash
-   # Install Rust
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   
-   # Install Node.js from https://nodejs.org/
-   ```
+### Setup
 
-2. **Clone and Build:**
-   ```bash
-   git clone https://github.com/PathanWasim/LLM-Network.git
-   cd LLM-Network
-   
-   # Build NeuroMesh
-   cargo build --release
-   
-   # Build Web Interface
-   cd webpage && npm install && npm run build && cd ..
-   ```
+1. **Download NeuroMesh**: Get the latest release or build from source
+2. **Install Ollama**: Download from [ollama.ai](https://ollama.ai/)
+3. **Pull a model**: `ollama pull llama3.2` (or any model you prefer)
+4. **Configure Firewall**: Run `admin-firewall-fix.bat` as Administrator
+5. **Start NeuroMesh**: Run `run-neuromesh.bat`
 
-3. **Start NeuroMesh:**
-   ```bash
-   start-neuromesh.bat
-   ```
+### Firewall Configuration (Required)
 
-4. **Access Neural Interface:**
-   ```
-   http://localhost:8080/app/
-   ```
-
-### 📦 **Alternative: Pre-built Release** (May trigger antivirus)
-
-If you prefer pre-built binaries, download from [Releases](https://github.com/PathanWasim/LLM-Network/releases) and add to antivirus exclusions.
-
-## Neural Architecture
-
-- **Neural TCP Layer**: Handles neural node connections and neural message passing
-- **Neural UDP Layer**: Manages neural node discovery and mesh broadcasts  
-- **Neural LLM Core**: Interfaces with Ollama for neural language model capabilities
-- **Neural Interface**: Advanced React-based neural control interface with particle effects
-
-## License
-
-MIT License 
-## 🛡️
- Antivirus False Positive Notice
-
-**NeuroMesh may be flagged by antivirus software** due to:
-- Network port usage (TCP/UDP communication)
-- Unsigned executable (digital certificates cost $100-300/year)
-- New software signature
-
-### Solutions:
-1. **Build from source** (recommended) - completely safe
-2. **Add antivirus exclusions** - see [ANTIVIRUS_GUIDE.md](ANTIVIRUS_GUIDE.md)
-3. **Verify checksums** - available in GitHub releases
-4. **Review source code** - fully open source for transparency
-
-### For Developers:
-```bash
-# Generate checksum for verification
-certutil -hashfile target\release\neuromesh.exe SHA256
+**Run as Administrator:**
+```cmd
+netsh advfirewall firewall add rule name="NeuroMesh TCP" dir=in action=allow protocol=TCP localport=7878
+netsh advfirewall firewall add rule name="NeuroMesh UDP" dir=in action=allow protocol=UDP localport=5000
+netsh advfirewall firewall add rule name="Ollama" dir=in action=allow protocol=TCP localport=11434
 ```
 
-**NeuroMesh is 100% safe** - it's a legitimate peer-to-peer AI network application with open source code.
+Or simply run `admin-firewall-fix.bat` as Administrator.
+
+## Usage
+
+### Hosting an LLM
+1. Run `run-neuromesh.bat`
+2. Your LLM will be automatically shared with discovered peers
+3. Open web interface at `http://localhost:3000`
+
+### Connecting to Friends
+1. Ensure both devices are on the same network
+2. Run NeuroMesh on both devices
+3. Peers will be automatically discovered
+4. Access remote LLMs through the web interface
+
+## Files
+
+- `run-neuromesh.bat` - Main startup script
+- `admin-firewall-fix.bat` - Firewall configuration (run as admin)
+- `target/release/neuromesh.exe` - Main executable
+- `FRIEND_SETUP_GUIDE.md` - Setup guide for friends
+
+## Troubleshooting
+
+### Common Issues
+- **Peers not found**: Check firewall rules and network connectivity
+- **LLM access denied**: Ensure Ollama is running and accessible
+- **Connection drops**: Normal behavior, system recovers automatically
+
+### Network Requirements
+- Same WiFi network or VPN
+- Ports 5000 (UDP), 7878 (TCP), 11434 (TCP) open
+- No AP isolation on router
+
+## Building from Source
+
+```bash
+git clone <repository-url>
+cd neuromesh
+cargo build --release
+```
+
+## Security Note
+NeuroMesh automatically shares LLMs with discovered peers. Only use on trusted networks.
