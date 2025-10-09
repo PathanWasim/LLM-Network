@@ -21,21 +21,41 @@ A revolutionary distributed peer-to-peer neural network that enables seamless AI
 
 ## Quick Start
 
-1. Clone the repository:
-```bash
-git clone https://github.com/PathanWasim/LLM-Network.git
-cd LLM-Network
-```
+### 🚀 **Recommended: Build from Source** (Avoids Antivirus Issues)
 
-2. Start NeuroMesh (automated setup):
-```bash
-start-neuromesh.bat
-```
+1. **Install Prerequisites:**
+   ```bash
+   # Install Rust
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   
+   # Install Node.js from https://nodejs.org/
+   ```
 
-3. Access the Neural Interface:
-```
-http://localhost:8080/app/
-```
+2. **Clone and Build:**
+   ```bash
+   git clone https://github.com/PathanWasim/LLM-Network.git
+   cd LLM-Network
+   
+   # Build NeuroMesh
+   cargo build --release
+   
+   # Build Web Interface
+   cd webpage && npm install && npm run build && cd ..
+   ```
+
+3. **Start NeuroMesh:**
+   ```bash
+   start-neuromesh.bat
+   ```
+
+4. **Access Neural Interface:**
+   ```
+   http://localhost:8080/app/
+   ```
+
+### 📦 **Alternative: Pre-built Release** (May trigger antivirus)
+
+If you prefer pre-built binaries, download from [Releases](https://github.com/PathanWasim/LLM-Network/releases) and add to antivirus exclusions.
 
 ## Neural Architecture
 
@@ -47,3 +67,24 @@ http://localhost:8080/app/
 ## License
 
 MIT License 
+## 🛡️
+ Antivirus False Positive Notice
+
+**NeuroMesh may be flagged by antivirus software** due to:
+- Network port usage (TCP/UDP communication)
+- Unsigned executable (digital certificates cost $100-300/year)
+- New software signature
+
+### Solutions:
+1. **Build from source** (recommended) - completely safe
+2. **Add antivirus exclusions** - see [ANTIVIRUS_GUIDE.md](ANTIVIRUS_GUIDE.md)
+3. **Verify checksums** - available in GitHub releases
+4. **Review source code** - fully open source for transparency
+
+### For Developers:
+```bash
+# Generate checksum for verification
+certutil -hashfile target\release\neuromesh.exe SHA256
+```
+
+**NeuroMesh is 100% safe** - it's a legitimate peer-to-peer AI network application with open source code.

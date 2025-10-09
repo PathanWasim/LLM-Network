@@ -1,0 +1,32 @@
+{
+  "id": "local",
+  "messages": [
+    {
+      "content": "hi",
+      "timestamp": "2025-10-08T10:03:22.048258400Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Nilesh_31",
+        "ip_address": "10.33.241.183",
+        "is_llm_host": false
+      }
+    },
+    {
+      "content": "hi",
+      "timestamp": "2025-10-08T10:04:12.423899700Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Nilesh_31",
+        "ip_address": "10.33.241.183",
+        "is_llm_host": false
+      }
+    }
+  ],
+  "host_info": {
+    "hostname": "Nilesh_31",
+    "ip_address": "10.33.241.183",
+    "is_llm_host": false
+  }
+}

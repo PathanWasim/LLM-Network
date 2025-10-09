@@ -1,0 +1,7 @@
+# NeuroMesh Portable Package 
+ 
+1. Add this folder to antivirus exclusions 
+2. Run start-neuromesh.bat 
+3. Open http://localhost:8080/app/ 
+ 
+This is safe software - see ANTIVIRUS_GUIDE.md 

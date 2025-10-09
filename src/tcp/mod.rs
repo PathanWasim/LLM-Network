@@ -134,23 +134,43 @@ impl Message {
     async fn receive(stream: &mut TcpStream) -> std::io::Result<Option<Message>> {
         let mut marker = [0u8; 5];
         
-        // Read marker with timeout
-        match tokio::time::timeout(Duration::from_secs(5), stream.read_exact(&mut marker)).await {
+        // Read marker with longer timeout and better error handling
+        match tokio::time::timeout(Duration::from_secs(15), stream.read_exact(&mut marker)).await {
             Ok(Ok(_)) => (),
-            Ok(Err(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-            Ok(Err(e)) => return Err(e),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading marker")),
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                println!("TCP: Connection closed gracefully");
+                return Ok(None);
+            },
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::ConnectionReset => {
+                println!("TCP: Connection reset by peer");
+                return Ok(None);
+            },
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::ConnectionAborted => {
+                println!("TCP: Connection aborted");
+                return Ok(None);
+            },
+            Ok(Err(e)) => {
+                println!("TCP: Error reading marker: {} - treating as connection close", e);
+                return Ok(None);
+            },
+            Err(_) => {
+                println!("TCP: Timeout reading marker - connection may be slow");
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading marker"));
+            },
         }
 
-        // Read length with timeout
+        // Read length with longer timeout
         let mut len_bytes = [0u8; 8];
-        match tokio::time::timeout(Duration::from_secs(5), stream.read_exact(&mut len_bytes)).await {
+        match tokio::time::timeout(Duration::from_secs(10), stream.read_exact(&mut len_bytes)).await {
             Ok(Ok(_)) => (),
             Ok(Err(e)) => {
-                eprintln!("TCP: Failed to read message length: {}", e);
+                println!("TCP: Failed to read message length: {} - retrying connection", e);
                 return Err(e);
             }
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading length")),
+            Err(_) => {
+                println!("TCP: Timeout reading length - network may be slow");
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading length"));
+            },
         }
         
         let len = u64::from_le_bytes(len_bytes) as usize;
@@ -419,29 +439,18 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                                     if let Err(e) = fs::write(peer_dir.join(&name), &content).await {
                                         eprintln!("TCP: Failed to save conversation from {}: {}", addr, e);
                                     } else {
-                                        println!("TCP: Saved conversation from {} to {}", addr, name);
+                                        println!("TCP: Received and saved conversation file {} from {}", name, addr);
                                         
                                         // Update peer conversations in store
                                         CONVERSATION_STORE.add_peer_conversation(addr.ip().to_string(), conversation).await;
-
-                                        // Send our local conversation in response to ensure both sides are synced
-                                        if let Some(local_conv) = CONVERSATION_STORE.get_local_conversation().await {
-                                            if let Ok(local_content) = serde_json::to_string(&local_conv) {
-                                                let response = Message::ConversationFile {
-                                                    name: "local.json".to_string(),
-                                                    content: local_content,
-                                                };
-                                                if let Err(e) = response.send(&mut stream).await {
-                                                    eprintln!("TCP: Failed to send local conversation in response: {}", e);
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                                 Err(e) => {
                                     eprintln!("TCP: Failed to parse conversation from {}: {}", addr, e);
                                 }
                             }
+                        } else {
+                            println!("TCP: Received file {} from {}", name, addr);
                         }
                     }
                     Message::SyncRequest => {
@@ -526,8 +535,8 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                             if let (Some(host), Some(port)) = (llm_host.clone(), llm_port) {
                                 let mut connections = LLM_CONNECTIONS.lock().await;
                                 connections.insert(addr.ip().to_string(), (host.clone(), port));
-                                println!("TCP: LLM access granted by {} - {} (LLM available at {}:{})", 
-                                       addr, message, host, port);
+                                println!("TCP: LLM access granted by {} - {}", addr, message);
+                                println!("TCP: LLM connection details stored for {} ({}:{})", addr, host, port);
                             } else {
                                 println!("TCP: LLM access granted by {} - {}", addr, message);
                             }
@@ -537,6 +546,8 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                     }
                     _ => {
                         println!("TCP: Received unexpected message type from {}", addr);
+                        // Don't break the connection, just continue processing
+                        continue;
                     }
                 }
             }
@@ -831,20 +842,41 @@ async fn request_llm_access(stream: &mut TcpStream, addr: &str) -> std::io::Resu
     }
 
     // Wait for response with a single longer timeout
-    let timeout = Duration::from_secs(15);
+    let timeout = Duration::from_secs(10);
     
     match tokio::time::timeout(timeout, async {
+        let mut attempts = 0;
         loop {
-            match Message::receive(stream).await? {
-                Some(Message::LLMAccessResponse { granted, message, llm_host, llm_port }) => {
+            attempts += 1;
+            if attempts > 5 {
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Too many attempts waiting for LLM response"));
+            }
+            
+            match Message::receive(stream).await {
+                Ok(Some(Message::LLMAccessResponse { granted, message, llm_host, llm_port })) => {
                     return Ok((granted, message, llm_host, llm_port));
                 }
-                Some(other) => {
-                    println!("TCP: Received unexpected message while waiting for LLM access response: {:?}", other);
-                    // Continue waiting for the correct response
+                Ok(Some(Message::ConversationFile { name, content: _ })) => {
+                    println!("TCP: Received conversation file {} while waiting for LLM response - continuing to wait", name);
                     continue;
                 }
-                None => return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed")),
+                Ok(Some(other)) => {
+                    println!("TCP: Received unexpected message type while waiting for LLM access response - continuing to wait");
+                    continue;
+                }
+                Ok(None) => {
+                    println!("TCP: Connection closed while waiting for LLM access response");
+                    return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    println!("TCP: Connection ended while waiting for LLM response - this is normal");
+                    return Err(e);
+                }
+                Err(e) => {
+                    println!("TCP: Error while waiting for LLM response: {} - retrying", e);
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    continue;
+                }
             }
         }
     }).await {
