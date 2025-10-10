@@ -1,23 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, Send, Bot, Users, Sparkles, MessageCircle, Zap, Cpu, Activity, Globe2, Shield, Layers, Workflow } from 'lucide-react';
-import { sendMessageToLLM } from './api/llm';
+import { Send, Bot, Sparkles, MessageCircle, Zap, Cpu, Activity, Globe2, Shield, Layers, Copy, RotateCcw, Trash2 } from 'lucide-react';
+import { sendMessageToLLM, getPeerConversations } from './api/llm';
 import { PeersConversation } from './PeersConversation';
 import { ParticleBackground } from './components/ParticleBackground';
+import { Navigation } from './components/Navigation';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
 function ChatPage({
-  onNavigate,
   conversation,
   setConversation,
   isTyping,
-  setIsTyping
+  setIsTyping,
+  isConnected,
+  setIsConnected
 }: {
-  onNavigate: (page: string) => void;
   conversation: Message[];
   setConversation: (messages: Message[]) => void;
   isTyping: boolean;
   setIsTyping: (typing: boolean) => void;
+  isConnected: boolean;
+  setIsConnected: (connected: boolean) => void;
 }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +46,7 @@ function ChatPage({
     try {
       const response = await sendMessageToLLM(inputValue);
       setIsTyping(false);
+      setIsConnected(true);
       setConversation([
         ...newConversation,
         { role: 'assistant' as const, content: response }
@@ -50,11 +54,46 @@ function ChatPage({
     } catch (error) {
       console.error('Error getting LLM response:', error);
       setIsTyping(false);
+      setIsConnected(false);
       setConversation([
         ...newConversation,
-        { role: 'assistant' as const, content: 'Sorry, I encountered an error while processing your request.' }
+        { role: 'assistant' as const, content: 'Sorry, I encountered an error while processing your request. Please check your connection and try again.' }
       ]);
     }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const regenerateResponse = async (messageIndex: number) => {
+    if (messageIndex < 1 || isTyping) return;
+
+    const userMessage = conversation[messageIndex - 1];
+    if (userMessage.role !== 'user') return;
+
+    setIsTyping(true);
+    try {
+      const response = await sendMessageToLLM(userMessage.content);
+      setIsTyping(false);
+      setIsConnected(true);
+
+      const newConversation = [...conversation];
+      newConversation[messageIndex] = { role: 'assistant', content: response };
+      setConversation(newConversation);
+    } catch (error) {
+      console.error('Error regenerating response:', error);
+      setIsTyping(false);
+      setIsConnected(false);
+    }
+  };
+
+  const clearConversation = () => {
+    setConversation([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -65,57 +104,31 @@ function ChatPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col relative overflow-hidden">
-      <ParticleBackground />
-
-      {/* Enhanced Header with more visual elements */}
-      <div className="sticky top-0 border-b border-gray-700/50 glass shadow-2xl p-4 relative z-50">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="relative neural-node">
-              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg neural-glow">
-                <Brain className="h-6 w-6 text-white" />
+    <div className="flex flex-col min-h-screen">
+      {/* Action bar for chat-specific actions */}
+      {conversation.length > 0 && (
+        <div className="border-b border-gray-700/30 bg-gray-800/30 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <MessageCircle className="w-3 h-3" />
+                <span>{conversation.length} messages in conversation</span>
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse border-2 border-gray-900"></div>
+              <button
+                onClick={clearConversation}
+                className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200 text-xs"
+                title="Clear conversation"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span>Clear Chat</span>
+              </button>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold gradient-text typewriter">
-                NeuroMesh
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Workflow className="w-3 h-3 text-cyan-400" />
-                <p className="text-xs text-gray-400">Neural Intelligence Mesh • Real-time Neural Sync</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-3">
-              <div className="glass px-3 py-2 rounded-full">
-                <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-cyan-400" />
-                  <span className="text-xs text-cyan-400 font-medium">AI Ready</span>
-                </div>
-              </div>
-              <div className="glass px-3 py-2 rounded-full">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-400 font-medium">Online</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => onNavigate('peers')}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl btn-hover-glow"
-            >
-              <Users className="h-5 w-5" />
-              <span className="font-medium">Neural Mesh</span>
-            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
         <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6 mb-24">
           {conversation.length === 0 ? (
             <div className="mt-16 text-center slide-in-up">
@@ -137,7 +150,7 @@ function ChatPage({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mb-8">
                 <div className="glass p-6 rounded-2xl group hover:scale-105 transition-all duration-300 slide-in-up" style={{ animationDelay: '0.1s' }}>
                   <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:glow-animation">
-                    <Brain className="w-6 h-6 text-cyan-400" />
+                    <MessageCircle className="w-6 h-6 text-cyan-400" />
                   </div>
                   <h3 className="font-bold text-white mb-2">Neural Conversations</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">Engage with advanced neural models using natural language processing</p>
@@ -208,7 +221,7 @@ function ChatPage({
                   ) : (
                     <div className="relative">
                       <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                        <span className="text-lg font-bold text-white">W</span>
+                        <span className="text-lg font-bold text-white">U</span>
                       </div>
                       <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/30 to-pink-600/30 rounded-2xl blur opacity-75"></div>
                     </div>
@@ -227,15 +240,26 @@ function ChatPage({
                     <p className="whitespace-pre-wrap leading-relaxed text-base">{message.content}</p>
 
                     {/* Message actions */}
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
-                      <button className="text-xs opacity-60 hover:opacity-100 transition-opacity">
-                        Copy
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/10">
+                      <button
+                        onClick={() => copyToClipboard(message.content)}
+                        className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-all duration-200 hover:text-cyan-400"
+                        title="Copy message"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
                       </button>
                       {message.role === 'assistant' && (
                         <>
                           <span className="text-xs opacity-30">•</span>
-                          <button className="text-xs opacity-60 hover:opacity-100 transition-opacity">
-                            Regenerate
+                          <button
+                            onClick={() => regenerateResponse(index)}
+                            disabled={isTyping}
+                            className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-all duration-200 hover:text-purple-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Regenerate response"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Regenerate</span>
                           </button>
                         </>
                       )}
@@ -279,65 +303,87 @@ function ChatPage({
       </div>
 
       {/* Enhanced Input Area */}
-      <div className="sticky bottom-0 w-full glass border-t border-gray-700/50 py-6 relative z-10">
-        <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="max-w-5xl mx-auto px-4">
-          <div className="relative">
-            {/* Input container */}
-            <div className="relative flex items-center glass border border-gray-600/50 rounded-2xl shadow-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5"></div>
-              <input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything... Press Enter to send or Shift+Enter for new line"
-                className="w-full bg-transparent text-white px-6 py-5 pr-20 rounded-2xl focus:outline-none placeholder-gray-400 text-base relative z-10"
-                disabled={isTyping}
-              />
+      <footer className="sticky bottom-0 w-full glass border-t border-gray-700/50 backdrop-blur-xl relative z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+            <div className="relative">
+              {/* Input container */}
+              <div className="relative flex items-center glass border border-gray-600/50 rounded-2xl shadow-2xl overflow-hidden focus-within:border-cyan-500/50 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5"></div>
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask anything... Press Enter to send or Shift+Enter for new line"
+                  className="w-full bg-transparent text-white px-6 py-4 pr-16 rounded-2xl focus:outline-none placeholder-gray-400 text-base relative z-10 resize-none min-h-[56px] max-h-32"
+                  disabled={isTyping}
+                  rows={1}
+                  style={{
+                    height: 'auto',
+                    minHeight: '56px'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                  }}
+                />
 
-              {/* Send button */}
-              <button
-                type="submit"
-                disabled={isTyping || !inputValue.trim()}
-                className="absolute right-3 h-12 w-12 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl btn-hover-glow group"
-              >
-                <Send className="h-5 w-5 text-white group-hover:scale-110 transition-transform" />
-              </button>
-            </div>
+                {/* Send button */}
+                <button
+                  type="submit"
+                  disabled={isTyping || !inputValue.trim() || !isConnected}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl btn-hover-glow group"
+                  title={!isConnected ? 'Disconnected - check your connection' : 'Send message'}
+                >
+                  <Send className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
 
-            {/* Input suggestions */}
-            {inputValue === '' && !isTyping && (
-              <div className="absolute -top-16 left-0 right-0 flex items-center justify-center">
-                <div className="glass px-4 py-2 rounded-full">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Globe2 className="w-3 h-3" />
-                    <span>Connected to NeuroMesh Network</span>
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              {/* Connection status */}
+              {!isConnected && (
+                <div className="absolute -top-12 left-0 right-0 flex items-center justify-center">
+                  <div className="glass px-4 py-2 rounded-full border border-red-500/30">
+                    <div className="flex items-center gap-2 text-xs text-red-400">
+                      <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                      <span>Connection lost - check your network</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* Quick actions */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Activity className="w-3 h-3" />
-              <span>AI Model: Qwen3-8B</span>
-              <span>•</span>
-              <span>Response Time: ~2s</span>
+            {/* Quick info */}
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-4 text-xs text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Activity className="w-3 h-3" />
+                  <span className="hidden sm:inline">AI Model: Neural LLM</span>
+                  <span className="sm:hidden">Neural AI</span>
+                </div>
+                <div className="hidden md:flex items-center gap-1">
+                  <Globe2 className="w-3 h-3" />
+                  <span>Response Time: ~2s</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500">
+                  {inputValue.length > 0 && `${inputValue.length} chars`}
+                </span>
+                {inputValue.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                    onClick={() => setInputValue('')}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
-                onClick={() => setInputValue('')}
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -346,20 +392,52 @@ function App() {
   const [currentPage, setCurrentPage] = useState('chat');
   const [conversation, setConversation] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+  const [peerCount, setPeerCount] = useState(0);
+
+  // Check peer count periodically
+  useEffect(() => {
+    const checkPeers = async () => {
+      try {
+        const peers = await getPeerConversations();
+        setPeerCount(Object.keys(peers).length);
+        setIsConnected(true);
+      } catch (error) {
+        console.error('Failed to fetch peers:', error);
+        setIsConnected(false);
+      }
+    };
+
+    checkPeers();
+    const interval = setInterval(checkPeers, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div>
-      {currentPage === 'chat' ? (
-        <ChatPage
-          onNavigate={setCurrentPage}
-          conversation={conversation}
-          setConversation={setConversation}
-          isTyping={isTyping}
-          setIsTyping={setIsTyping}
-        />
-      ) : (
-        <PeersConversation onNavigate={setCurrentPage} />
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
+      <ParticleBackground />
+
+      <Navigation
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+        isConnected={isConnected}
+        peerCount={peerCount}
+      />
+
+      <main className="relative z-10">
+        {currentPage === 'chat' ? (
+          <ChatPage
+            conversation={conversation}
+            setConversation={setConversation}
+            isTyping={isTyping}
+            setIsTyping={setIsTyping}
+            isConnected={isConnected}
+            setIsConnected={setIsConnected}
+          />
+        ) : (
+          <PeersConversation />
+        )}
+      </main>
     </div>
   );
 }
