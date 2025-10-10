@@ -392,9 +392,14 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     // Check Ollama availability before sending capability
     let has_llm = is_ollama_available().await;
     
-    // Send our LLM capability immediately
+    // Send our LLM capability immediately and flush
     if let Err(e) = (Message::LLMCapability { has_llm }).send(&mut stream).await {
         return Err(e);
+    }
+    
+    // Force flush to ensure capability is sent first
+    if let Err(e) = stream.flush().await {
+        eprintln!("TCP: Failed to flush after capability announcement: {}", e);
     }
 
     if has_llm {
@@ -403,7 +408,10 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
         println!("TCP: Announced no LLM capability to {} (Ollama not available)", addr);
     }
 
-    // Share our local conversation immediately
+    // Small delay to ensure capability message is processed first
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Share our local conversation after capability is established
     if let Some(conversation) = CONVERSATION_STORE.get_local_conversation().await {
         let content = serde_json::to_string(&conversation)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
@@ -470,10 +478,10 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                         }
                     }
                     Message::LLMAccessRequest { peer_name, reason } => {
+                        println!("TCP: Received LLM access request from {} ({}): {}", addr, peer_name, reason);
+                        
                         if has_llm {
-                            println!("TCP: Received LLM access request from {} ({}): {}", addr, peer_name, reason);
-                            
-                            // Include our IP and Ollama port in the response
+                            // PRIORITY: Send LLM access response IMMEDIATELY before any other messages
                             let response = Message::LLMAccessResponse {
                                 granted: true,
                                 message: "Access granted automatically".to_string(),
@@ -481,15 +489,20 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                                 llm_port: Some(OLLAMA_PORT),
                             };
                             
-                            // Send response immediately and ensure it's sent
+                            // Send response with high priority - flush immediately
                             if let Err(e) = response.send(&mut stream).await {
                                 eprintln!("TCP: Failed to send LLM access response to {}: {}", addr, e);
                                 return Err(e);
                             }
+                            
+                            // Force flush the stream to ensure immediate delivery
+                            if let Err(e) = stream.flush().await {
+                                eprintln!("TCP: Failed to flush stream after LLM response: {}", e);
+                            }
 
                             let mut authorized = AUTHORIZED_PEERS.lock().await;
                             authorized.insert(addr.ip().to_string());
-                            println!("TCP: Granted LLM access to {} ({}) with port {}", addr, peer_name, OLLAMA_PORT);
+                            println!("TCP: Granted LLM access to {} ({}) with port {} - Response sent immediately", addr, peer_name, OLLAMA_PORT);
                         } else {
                             let response = Message::LLMAccessResponse {
                                 granted: false,
@@ -500,6 +513,9 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                             if let Err(e) = response.send(&mut stream).await {
                                 eprintln!("TCP: Failed to send LLM access response to {}: {}", addr, e);
                                 return Err(e);
+                            }
+                            if let Err(e) = stream.flush().await {
+                                eprintln!("TCP: Failed to flush stream after LLM denial: {}", e);
                             }
                         }
                     }
@@ -842,13 +858,13 @@ async fn request_llm_access(stream: &mut TcpStream, addr: &str) -> std::io::Resu
     }
 
     // Wait for response with a single longer timeout
-    let timeout = Duration::from_secs(10);
+    let timeout = Duration::from_secs(20);
     
     match tokio::time::timeout(timeout, async {
         let mut attempts = 0;
         loop {
             attempts += 1;
-            if attempts > 5 {
+            if attempts > 10 {
                 return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Too many attempts waiting for LLM response"));
             }
             
@@ -873,8 +889,8 @@ async fn request_llm_access(stream: &mut TcpStream, addr: &str) -> std::io::Resu
                     return Err(e);
                 }
                 Err(e) => {
-                    println!("TCP: Error while waiting for LLM response: {} - retrying", e);
-                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    println!("TCP: Error while waiting for LLM response: {} - retrying (attempt {})", e, attempts);
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
                     continue;
                 }
             }

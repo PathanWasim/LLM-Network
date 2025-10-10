@@ -27,4 +27,8 @@ Thumbs.db
 /webpage/.cache/
 /webpage/dist/
 *.log
-npm-debug.log* 
+npm-debug.log*
+
+# Runtime data directories
+/conversations/
+/received/ 
