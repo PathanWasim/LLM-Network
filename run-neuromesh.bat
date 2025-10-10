@@ -35,6 +35,7 @@ echo.
 echo 5. Starting Ollama with external access...
 set OLLAMA_HOST=0.0.0.0
 set OLLAMA_ORIGINS=*
+echo Using optimized qwen3-fast model for better performance...
 start /B ollama serve
 
 echo.
