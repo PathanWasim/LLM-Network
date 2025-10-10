@@ -45,7 +45,7 @@ export const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
                             <Cpu className="w-8 h-8 text-green-400" />
                         </div>
                         <div className="text-3xl font-bold text-white mb-2">{llmHosts}</div>
-                        <div className="text-sm text-gray-400">AI Hosts</div>
+                        <div className="text-sm text-gray-400">Neural Engines</div>
                     </div>
 
                     <div className="glass rounded-xl p-6 text-center group hover:scale-105 transition-transform duration-200">

@@ -1,12 +1,12 @@
-# NeuroMesh - Distributed LLM Network
+# NeuroMesh - Distributed Neural Intelligence Network
 
-NeuroMesh is a peer-to-peer network that allows sharing of Large Language Model (LLM) capabilities across multiple devices. Connect to friends and access their LLMs seamlessly.
+NeuroMesh is a peer-to-peer neural network that enables seamless sharing of AI capabilities across multiple devices. Connect with friends and access distributed neural processing power effortlessly.
 
 ## Quick Start
 
 ### Prerequisites
-- [Ollama](https://ollama.ai/) installed (for hosting LLMs)
-- Windows Firewall configured (see setup below)
+- [Ollama](https://ollama.ai/) installed (neural engine backend)
+- Windows Firewall configured (automatic setup included)
 
 ### Setup
 
@@ -29,16 +29,16 @@ Or simply run `admin-firewall-fix.bat` as Administrator.
 
 ## Usage
 
-### Hosting an LLM
+### Hosting Neural Engine
 1. Run `run-neuromesh.bat`
-2. Your LLM will be automatically shared with discovered peers
+2. Your neural engine will be automatically shared with discovered peers
 3. Open web interface at `http://localhost:3000`
 
 ### Connecting to Friends
 1. Ensure both devices are on the same network
 2. Run NeuroMesh on both devices
-3. Peers will be automatically discovered
-4. Access remote LLMs through the web interface
+3. Neural nodes will be automatically discovered
+4. Access distributed neural processing through the web interface
 
 ## Files
 
@@ -68,4 +68,4 @@ cargo build --release
 ```
 
 ## Security Note
-NeuroMesh automatically shares LLMs with discovered peers. Only use on trusted networks.
+NeuroMesh automatically shares neural processing capabilities with discovered peers. Only use on trusted networks.

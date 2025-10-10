@@ -358,12 +358,12 @@ function ChatPage({
               <div className="flex items-center gap-4 text-xs text-gray-400">
                 <div className="flex items-center gap-1">
                   <Activity className="w-3 h-3" />
-                  <span className="hidden sm:inline">AI Model: Neural LLM</span>
-                  <span className="sm:hidden">Neural AI</span>
+                  <span className="hidden sm:inline">Neural Processing Engine</span>
+                  <span className="sm:hidden">Neural Engine</span>
                 </div>
                 <div className="hidden md:flex items-center gap-1">
                   <Globe2 className="w-3 h-3" />
-                  <span>Response Time: ~2s</span>
+                  <span>Distributed Intelligence Network</span>
                 </div>
               </div>
               <div className="flex items-center gap-3">

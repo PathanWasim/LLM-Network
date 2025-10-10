@@ -123,10 +123,10 @@ export function PeersConversation() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <Users className="w-6 h-6 text-cyan-400" />
-                  <h3 className="text-2xl font-bold gradient-text">Connected Neural Nodes</h3>
+                  <h3 className="text-2xl font-bold gradient-text">Neural Mesh Network</h3>
                 </div>
                 <div className="text-sm text-gray-400">
-                  {peerIps.length} node{peerIps.length !== 1 ? 's' : ''} discovered
+                  {peerIps.length} neural node{peerIps.length !== 1 ? 's' : ''} in mesh
                 </div>
               </div>
 
@@ -173,7 +173,7 @@ export function PeersConversation() {
                           </div>
                           {peer.host_info.is_llm_host && (
                             <div className="px-2 py-1 bg-green-500/20 rounded-full border border-green-500/30">
-                              <span className="text-xs text-green-400 font-medium">AI Host</span>
+                              <span className="text-xs text-green-400 font-medium">Neural Host</span>
                             </div>
                           )}
                         </div>
@@ -210,12 +210,12 @@ export function PeersConversation() {
                           {peerConversations[selectedPeer].host_info.is_llm_host ? (
                             <>
                               <Wifi className="w-4 h-4 text-green-400" />
-                              <span className="text-green-400 font-medium">AI Available</span>
+                              <span className="text-green-400 font-medium">Neural Engine Online</span>
                             </>
                           ) : (
                             <>
                               <WifiOff className="w-4 h-4 text-gray-400" />
-                              <span>No AI Model</span>
+                              <span>No Neural Engine</span>
                             </>
                           )}
                         </div>

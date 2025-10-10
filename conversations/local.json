@@ -968,6 +968,72 @@
         "ip_address": "192.168.0.102",
         "is_llm_host": true
       }
+    },
+    {
+      "content": "Explain machine learning",
+      "timestamp": "2025-10-10T06:08:39.222529600Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "Machine learning is a subset of artificial intelligence that involves the development of algorithms that allow computers to learn from and make predictions or decisions based on data. It'ries on creating models that can improve their performance at tasks over time without being explicitly programmed, by using statistical techniques to find patterns in data. Machine learning has applications across various industries including healthcare, finance, transportation, and more.",
+      "timestamp": "2025-10-10T06:08:42.812553600Z",
+      "sender": "LLM",
+      "message_type": "Response",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "Explain machine learning",
+      "timestamp": "2025-10-10T06:08:49.586201Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "Machine learning is a subset of artificial intelligence that involves the use of algorithms and statistical models to enable computers to improve their performance on a specific task with data, without being explicitly programmed for each step. It's about teaching machines how to learn from experience, much like humans do. This field has applications in various domains such as healthcare, finance, transportation, and more.",
+      "timestamp": "2025-10-10T06:08:51.507430Z",
+      "sender": "LLM",
+      "message_type": "Response",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "who is pm of india",
+      "timestamp": "2025-10-10T06:08:58.574365800Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "As of my last update in April 2024, the Prime Minister of India is Narendra Modi, who has been in office since May 2014. Please note that political positions can change due to elections or other circumstances, so it's always a good idea to verify current information from reliable sources.",
+      "timestamp": "2025-10-10T06:09:00.253035800Z",
+      "sender": "LLM",
+      "message_type": "Response",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.102",
+        "is_llm_host": true
+      }
     }
   ],
   "host_info": {
