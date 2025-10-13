@@ -18,7 +18,7 @@ async fn get_ollama_url() -> String {
     }
 }
 
-const REMOTE_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+const REMOTE_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize)]
 pub struct ChatRequest {
@@ -116,6 +116,7 @@ async fn try_remote_llm(req: &OllamaRequest) -> Result<String, String> {
         
         match client.post(&remote_url)
             .json(&req)
+            .timeout(REMOTE_REQUEST_TIMEOUT)
             .send()
             .await {
                 Ok(response) => {
@@ -195,7 +196,7 @@ pub async fn chat(req: web::Json<ChatRequest>) -> Result<HttpResponse, Error> {
     CONVERSATION_STORE.add_message("local".to_string(), question_message).await;
 
     let ollama_req = OllamaRequest {
-        model: "smartgpt:latest".to_string(),
+        model: "phi3-fast".to_string(),
         messages: vec![
             OllamaMessage {
                 role: "user".to_string(),

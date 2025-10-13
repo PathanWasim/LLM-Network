@@ -1,0 +1,21 @@
+{
+  "id": "local",
+  "messages": [
+    {
+      "content": "hi",
+      "timestamp": "2025-10-09T10:25:07.994978800Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Nilesh_31",
+        "ip_address": "10.99.100.183",
+        "is_llm_host": false
+      }
+    }
+  ],
+  "host_info": {
+    "hostname": "Nilesh_31",
+    "ip_address": "10.99.100.183",
+    "is_llm_host": false
+  }
+}

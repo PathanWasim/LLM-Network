@@ -134,23 +134,43 @@ impl Message {
     async fn receive(stream: &mut TcpStream) -> std::io::Result<Option<Message>> {
         let mut marker = [0u8; 5];
         
-        // Read marker with timeout
-        match tokio::time::timeout(Duration::from_secs(5), stream.read_exact(&mut marker)).await {
+        // Read marker with longer timeout and better error handling
+        match tokio::time::timeout(Duration::from_secs(15), stream.read_exact(&mut marker)).await {
             Ok(Ok(_)) => (),
-            Ok(Err(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-            Ok(Err(e)) => return Err(e),
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading marker")),
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                println!("TCP: Connection closed gracefully");
+                return Ok(None);
+            },
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::ConnectionReset => {
+                println!("TCP: Connection reset by peer");
+                return Ok(None);
+            },
+            Ok(Err(e)) if e.kind() == std::io::ErrorKind::ConnectionAborted => {
+                println!("TCP: Connection aborted");
+                return Ok(None);
+            },
+            Ok(Err(e)) => {
+                println!("TCP: Error reading marker: {} - treating as connection close", e);
+                return Ok(None);
+            },
+            Err(_) => {
+                println!("TCP: Timeout reading marker - connection may be slow");
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading marker"));
+            },
         }
 
-        // Read length with timeout
+        // Read length with longer timeout
         let mut len_bytes = [0u8; 8];
-        match tokio::time::timeout(Duration::from_secs(5), stream.read_exact(&mut len_bytes)).await {
+        match tokio::time::timeout(Duration::from_secs(10), stream.read_exact(&mut len_bytes)).await {
             Ok(Ok(_)) => (),
             Ok(Err(e)) => {
-                eprintln!("TCP: Failed to read message length: {}", e);
+                println!("TCP: Failed to read message length: {} - retrying connection", e);
                 return Err(e);
             }
-            Err(_) => return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading length")),
+            Err(_) => {
+                println!("TCP: Timeout reading length - network may be slow");
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Timeout reading length"));
+            },
         }
         
         let len = u64::from_le_bytes(len_bytes) as usize;
@@ -372,9 +392,14 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     // Check Ollama availability before sending capability
     let has_llm = is_ollama_available().await;
     
-    // Send our LLM capability immediately
+    // Send our LLM capability immediately and flush
     if let Err(e) = (Message::LLMCapability { has_llm }).send(&mut stream).await {
         return Err(e);
+    }
+    
+    // Force flush to ensure capability is sent first
+    if let Err(e) = stream.flush().await {
+        eprintln!("TCP: Failed to flush after capability announcement: {}", e);
     }
 
     if has_llm {
@@ -383,7 +408,10 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
         println!("TCP: Announced no LLM capability to {} (Ollama not available)", addr);
     }
 
-    // Share our local conversation immediately
+    // Small delay to ensure capability message is processed first
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    // Share our local conversation after capability is established
     if let Some(conversation) = CONVERSATION_STORE.get_local_conversation().await {
         let content = serde_json::to_string(&conversation)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
@@ -419,29 +447,18 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                                     if let Err(e) = fs::write(peer_dir.join(&name), &content).await {
                                         eprintln!("TCP: Failed to save conversation from {}: {}", addr, e);
                                     } else {
-                                        println!("TCP: Saved conversation from {} to {}", addr, name);
+                                        println!("TCP: Received and saved conversation file {} from {}", name, addr);
                                         
                                         // Update peer conversations in store
                                         CONVERSATION_STORE.add_peer_conversation(addr.ip().to_string(), conversation).await;
-
-                                        // Send our local conversation in response to ensure both sides are synced
-                                        if let Some(local_conv) = CONVERSATION_STORE.get_local_conversation().await {
-                                            if let Ok(local_content) = serde_json::to_string(&local_conv) {
-                                                let response = Message::ConversationFile {
-                                                    name: "local.json".to_string(),
-                                                    content: local_content,
-                                                };
-                                                if let Err(e) = response.send(&mut stream).await {
-                                                    eprintln!("TCP: Failed to send local conversation in response: {}", e);
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                                 Err(e) => {
                                     eprintln!("TCP: Failed to parse conversation from {}: {}", addr, e);
                                 }
                             }
+                        } else {
+                            println!("TCP: Received file {} from {}", name, addr);
                         }
                     }
                     Message::SyncRequest => {
@@ -461,10 +478,10 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                         }
                     }
                     Message::LLMAccessRequest { peer_name, reason } => {
+                        println!("TCP: Received LLM access request from {} ({}): {}", addr, peer_name, reason);
+                        
                         if has_llm {
-                            println!("TCP: Received LLM access request from {} ({}): {}", addr, peer_name, reason);
-                            
-                            // Include our IP and Ollama port in the response
+                            // PRIORITY: Send LLM access response IMMEDIATELY before any other messages
                             let response = Message::LLMAccessResponse {
                                 granted: true,
                                 message: "Access granted automatically".to_string(),
@@ -472,15 +489,20 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                                 llm_port: Some(OLLAMA_PORT),
                             };
                             
-                            // Send response immediately and ensure it's sent
+                            // Send response with high priority - flush immediately
                             if let Err(e) = response.send(&mut stream).await {
                                 eprintln!("TCP: Failed to send LLM access response to {}: {}", addr, e);
                                 return Err(e);
                             }
+                            
+                            // Force flush the stream to ensure immediate delivery
+                            if let Err(e) = stream.flush().await {
+                                eprintln!("TCP: Failed to flush stream after LLM response: {}", e);
+                            }
 
                             let mut authorized = AUTHORIZED_PEERS.lock().await;
                             authorized.insert(addr.ip().to_string());
-                            println!("TCP: Granted LLM access to {} ({}) with port {}", addr, peer_name, OLLAMA_PORT);
+                            println!("TCP: Granted LLM access to {} ({}) with port {} - Response sent immediately", addr, peer_name, OLLAMA_PORT);
                         } else {
                             let response = Message::LLMAccessResponse {
                                 granted: false,
@@ -491,6 +513,9 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                             if let Err(e) = response.send(&mut stream).await {
                                 eprintln!("TCP: Failed to send LLM access response to {}: {}", addr, e);
                                 return Err(e);
+                            }
+                            if let Err(e) = stream.flush().await {
+                                eprintln!("TCP: Failed to flush stream after LLM denial: {}", e);
                             }
                         }
                     }
@@ -526,8 +551,8 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                             if let (Some(host), Some(port)) = (llm_host.clone(), llm_port) {
                                 let mut connections = LLM_CONNECTIONS.lock().await;
                                 connections.insert(addr.ip().to_string(), (host.clone(), port));
-                                println!("TCP: LLM access granted by {} - {} (LLM available at {}:{})", 
-                                       addr, message, host, port);
+                                println!("TCP: LLM access granted by {} - {}", addr, message);
+                                println!("TCP: LLM connection details stored for {} ({}:{})", addr, host, port);
                             } else {
                                 println!("TCP: LLM access granted by {} - {}", addr, message);
                             }
@@ -537,6 +562,8 @@ async fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
                     }
                     _ => {
                         println!("TCP: Received unexpected message type from {}", addr);
+                        // Don't break the connection, just continue processing
+                        continue;
                     }
                 }
             }
@@ -831,20 +858,41 @@ async fn request_llm_access(stream: &mut TcpStream, addr: &str) -> std::io::Resu
     }
 
     // Wait for response with a single longer timeout
-    let timeout = Duration::from_secs(15);
+    let timeout = Duration::from_secs(20);
     
     match tokio::time::timeout(timeout, async {
+        let mut attempts = 0;
         loop {
-            match Message::receive(stream).await? {
-                Some(Message::LLMAccessResponse { granted, message, llm_host, llm_port }) => {
+            attempts += 1;
+            if attempts > 10 {
+                return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, "Too many attempts waiting for LLM response"));
+            }
+            
+            match Message::receive(stream).await {
+                Ok(Some(Message::LLMAccessResponse { granted, message, llm_host, llm_port })) => {
                     return Ok((granted, message, llm_host, llm_port));
                 }
-                Some(other) => {
-                    println!("TCP: Received unexpected message while waiting for LLM access response: {:?}", other);
-                    // Continue waiting for the correct response
+                Ok(Some(Message::ConversationFile { name, content: _ })) => {
+                    println!("TCP: Received conversation file {} while waiting for LLM response - continuing to wait", name);
                     continue;
                 }
-                None => return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed")),
+                Ok(Some(other)) => {
+                    println!("TCP: Received unexpected message type while waiting for LLM access response - continuing to wait");
+                    continue;
+                }
+                Ok(None) => {
+                    println!("TCP: Connection closed while waiting for LLM access response");
+                    return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Connection closed"));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    println!("TCP: Connection ended while waiting for LLM response - this is normal");
+                    return Err(e);
+                }
+                Err(e) => {
+                    println!("TCP: Error while waiting for LLM response: {} - retrying (attempt {})", e, attempts);
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
+                    continue;
+                }
             }
         }
     }).await {

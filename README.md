@@ -1,48 +1,71 @@
-# Chakravyuh-1.0
+# NeuroMesh - Distributed Neural Intelligence Network
 
-A distributed peer-to-peer LLM network application that enables sharing of LLM capabilities across nodes.
+NeuroMesh is a peer-to-peer neural network that enables seamless sharing of AI capabilities across multiple devices. Connect with friends and access distributed neural processing power effortlessly.
 
-## Features
+## Quick Start
 
-- Peer-to-peer network communication using TCP and UDP
-- Automatic peer discovery via UDP broadcasts
-- Shared LLM (Language Model) access across peers
-- Real-time conversation synchronization
-- Persistent conversation storage
-- Web-based user interface
+### Prerequisites
+- [Ollama](https://ollama.ai/) installed (neural engine backend)
+- Windows Firewall configured (automatic setup included)
 
-## Requirements
+### Setup
 
-- Rust (latest stable version)
-- Node.js (for web interface)
-- Ollama (for LLM capabilities)
+1. **Download NeuroMesh**: Get the latest release or build from source
+2. **Install Ollama**: Download from [ollama.ai](https://ollama.ai/)
+3. **Pull a model**: `ollama pull llama3.2` (or any model you prefer)
+4. **Configure Firewall**: Run `admin-firewall-fix.bat` as Administrator
+5. **Start NeuroMesh**: Run `run-neuromesh.bat`
 
-## Setup
+### Firewall Configuration (Required)
 
-1. Clone the repository:
-```bash
-git clone https://github.com/Omkar2k5/Chakravyuh-1.0.git
-cd Chakravyuh-1.0
+**Run as Administrator:**
+```cmd
+netsh advfirewall firewall add rule name="NeuroMesh TCP" dir=in action=allow protocol=TCP localport=7878
+netsh advfirewall firewall add rule name="NeuroMesh UDP" dir=in action=allow protocol=UDP localport=5000
+netsh advfirewall firewall add rule name="Ollama" dir=in action=allow protocol=TCP localport=11434
 ```
 
-2. Build and run the project:
+Or simply run `admin-firewall-fix.bat` as Administrator.
+
+## Usage
+
+### Hosting Neural Engine
+1. Run `run-neuromesh.bat`
+2. Your neural engine will be automatically shared with discovered peers
+3. Open web interface at `http://localhost:3000`
+
+### Connecting to Friends
+1. Ensure both devices are on the same network
+2. Run NeuroMesh on both devices
+3. Neural nodes will be automatically discovered
+4. Access distributed neural processing through the web interface
+
+## Files
+
+- `run-neuromesh.bat` - Main startup script
+- `admin-firewall-fix.bat` - Firewall configuration (run as admin)
+- `target/release/neuromesh.exe` - Main executable
+- `FRIEND_SETUP_GUIDE.md` - Setup guide for friends
+
+## Troubleshooting
+
+### Common Issues
+- **Peers not found**: Check firewall rules and network connectivity
+- **LLM access denied**: Ensure Ollama is running and accessible
+- **Connection drops**: Normal behavior, system recovers automatically
+
+### Network Requirements
+- Same WiFi network or VPN
+- Ports 5000 (UDP), 7878 (TCP), 11434 (TCP) open
+- No AP isolation on router
+
+## Building from Source
+
 ```bash
+git clone <repository-url>
+cd neuromesh
 cargo build --release
-cargo run --release
 ```
 
-3. For LLM host setup, run the provided batch script:
-```bash
-ollama_host.bat
-```
-
-## Architecture
-
-- TCP module: Handles peer connections and message passing
-- UDP module: Manages peer discovery and network broadcasts
-- LLM module: Interfaces with Ollama for language model capabilities
-- Web Interface: React-based UI for user interaction
-
-## License
-
-MIT License 
+## Security Note
+NeuroMesh automatically shares neural processing capabilities with discovered peers. Only use on trusted networks.

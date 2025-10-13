@@ -7,7 +7,7 @@
       "sender": "user",
       "message_type": "Question",
       "host_info": {
-        "hostname": "Omkar",
+        "hostname": "Wasim",
         "ip_address": "192.168.1.8",
         "is_llm_host": false
       }
@@ -18,7 +18,7 @@
       "sender": "user",
       "message_type": "Question",
       "host_info": {
-        "hostname": "Omkar",
+        "hostname": "Wasim",
         "ip_address": "192.168.210.8",
         "is_llm_host": false
       }
@@ -29,7 +29,7 @@
       "sender": "user",
       "message_type": "Question",
       "host_info": {
-        "hostname": "Omkar",
+        "hostname": "Wasim",
         "ip_address": "192.168.31.75",
         "is_llm_host": true
       }
@@ -40,14 +40,14 @@
       "sender": "LLM",
       "message_type": "Response",
       "host_info": {
-        "hostname": "Omkar",
+        "hostname": "Wasim",
         "ip_address": "192.168.31.75",
         "is_llm_host": true
       }
     }
   ],
   "host_info": {
-    "hostname": "Omkar",
+    "hostname": "Wasim",
     "ip_address": "192.168.1.8",
     "is_llm_host": false
   }

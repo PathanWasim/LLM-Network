@@ -1117,33 +1117,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "instance"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-multipart",
- "actix-web",
- "bincode",
- "chrono",
- "futures",
- "hex",
- "hostname",
- "ipconfig",
- "lazy_static",
- "mime_guess",
- "once_cell",
- "open",
- "reqwest",
- "rusqlite",
- "rust-embed",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sha2",
- "tokio",
-]
-
-[[package]]
 name = "ipconfig"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1343,6 +1316,33 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
+]
+
+[[package]]
+name = "neuromesh"
+version = "1.0.0"
+dependencies = [
+ "actix-cors",
+ "actix-multipart",
+ "actix-web",
+ "bincode",
+ "chrono",
+ "futures",
+ "hex",
+ "hostname",
+ "ipconfig",
+ "lazy_static",
+ "mime_guess",
+ "once_cell",
+ "open",
+ "reqwest",
+ "rusqlite",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sha2",
+ "tokio",
 ]
 
 [[package]]
