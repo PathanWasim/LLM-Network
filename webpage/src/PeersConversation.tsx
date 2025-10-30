@@ -42,8 +42,8 @@ export function PeersConversation() {
   const peerIps = Object.keys(peerConversations);
 
   return (
-    <div className="min-h-screen relative">
-      <div className="max-w-7xl mx-auto p-6 relative z-10">
+    <div className="h-screen flex flex-col">
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

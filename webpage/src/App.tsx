@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Sparkles, MessageCircle, Zap, Cpu, Activity, Globe2, Shield, Layers, Copy, RotateCcw, Trash2 } from 'lucide-react';
+import { Send, Bot, Sparkles, Copy, RotateCcw } from 'lucide-react';
 import { sendMessageToLLM, getPeerConversations } from './api/llm';
 import { PeersConversation } from './PeersConversation';
 import { ParticleBackground } from './components/ParticleBackground';
-import { Navigation } from './components/Navigation';
+import { Sidebar } from './components/Sidebar';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -92,10 +92,6 @@ function ChatPage({
     }
   };
 
-  const clearConversation = () => {
-    setConversation([]);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -104,286 +100,156 @@ function ChatPage({
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Action bar for chat-specific actions */}
-      {conversation.length > 0 && (
-        <div className="border-b border-gray-700/30 bg-gray-800/30 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <MessageCircle className="w-3 h-3" />
-                <span>{conversation.length} messages in conversation</span>
-              </div>
-              <button
-                onClick={clearConversation}
-                className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200 text-xs"
-                title="Clear conversation"
-              >
-                <Trash2 className="h-3 w-3" />
-                <span>Clear Chat</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="flex flex-col h-screen">
       {/* Main Chat Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6 mb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto">
           {conversation.length === 0 ? (
-            <div className="mt-16 text-center slide-in-up">
-              <div className="mb-12">
-                <div className="relative inline-block mb-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl float-animation">
-                    <Sparkles className="w-12 h-12 text-white" />
-                  </div>
-                  <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-purple-600/20 rounded-3xl blur-xl"></div>
+            <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
+              <div className="mb-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl mb-4 mx-auto">
+                  <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-4xl font-bold gradient-text mb-4">Welcome to NeuroMesh</h2>
-                <p className="text-gray-300 max-w-2xl mx-auto text-lg leading-relaxed">
-                  Experience the future of neural mesh intelligence. Connect with neural nodes across the mesh
-                  and harness the power of distributed neural processing for unprecedented AI capabilities.
+                <h2 className="text-2xl font-bold gradient-text mb-3">Welcome to NeuroMesh</h2>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  Your distributed neural intelligence network. Ask me anything or connect with other neural nodes.
                 </p>
               </div>
 
-              {/* Enhanced feature cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mb-8">
-                <div className="glass p-6 rounded-2xl group hover:scale-105 transition-all duration-300 slide-in-up" style={{ animationDelay: '0.1s' }}>
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:glow-animation">
-                    <MessageCircle className="w-6 h-6 text-cyan-400" />
-                  </div>
-                  <h3 className="font-bold text-white mb-2">Neural Conversations</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">Engage with advanced neural models using natural language processing</p>
-                </div>
-
-                <div className="glass p-6 rounded-2xl group hover:scale-105 transition-all duration-300 slide-in-up" style={{ animationDelay: '0.2s' }}>
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:glow-animation">
-                    <Layers className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <h3 className="font-bold text-white mb-2">Neural Mesh</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">Connect with distributed neural nodes for enhanced AI capabilities</p>
-                </div>
-
-                <div className="glass p-6 rounded-2xl group hover:scale-105 transition-all duration-300 slide-in-up" style={{ animationDelay: '0.3s' }}>
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:glow-animation">
-                    <Zap className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <h3 className="font-bold text-white mb-2">Neural Sync</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">Instant neural response sharing and mesh synchronization</p>
-                </div>
-
-                <div className="glass p-6 rounded-2xl group hover:scale-105 transition-all duration-300 slide-in-up" style={{ animationDelay: '0.4s' }}>
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:glow-animation">
-                    <Shield className="w-6 h-6 text-green-400" />
-                  </div>
-                  <h3 className="font-bold text-white mb-2">Neural Security</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">End-to-end encrypted neural communication with mesh authentication</p>
-                </div>
-              </div>
-
               {/* Quick start suggestions */}
-              <div className="max-w-2xl mx-auto">
-                <p className="text-gray-400 mb-4">Try asking:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "What is neural mesh AI?",
-                    "How does neural networking work?",
-                    "Explain machine learning",
-                    "Write a Python function"
-                  ].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setInputValue(suggestion)}
-                      className="px-4 py-2 glass rounded-full text-sm text-gray-300 hover:text-white hover:bg-gray-700/50 transition-all duration-200"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl w-full">
+                {[
+                  "What is neural mesh AI?",
+                  "How does distributed intelligence work?",
+                  "Write a Python function",
+                  "Explain machine learning concepts"
+                ].map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setInputValue(suggestion)}
+                    className="p-4 text-left bg-gray-800/30 hover:bg-gray-700/50 border border-gray-700/50 hover:border-gray-600/50 rounded-xl transition-all duration-200 text-gray-300 hover:text-white"
+                  >
+                    <div className="text-sm">{suggestion}</div>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
-            conversation.map((message, index) => (
-              <div
-                key={index}
-                className={`flex items-start gap-4 ${message.role === 'user' ? 'flex-row-reverse message-user' : 'message-assistant'
-                  }`}
-              >
-                <div className={`flex-shrink-0 ${message.role === 'user' ? 'order-2' : ''
-                  }`}>
-                  {message.role === "assistant" ? (
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg">
-                        <Bot className="w-6 h-6 text-white" />
+            <div className="space-y-6">
+              {conversation.map((message, index) => (
+                <div key={index} className="group">
+                  <div className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {message.role === 'assistant' && (
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                          <Bot className="w-4 h-4 text-white" />
+                        </div>
                       </div>
-                      <div className="absolute -inset-1 bg-gradient-to-br from-cyan-500/30 to-blue-600/30 rounded-2xl blur opacity-75"></div>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                        <span className="text-lg font-bold text-white">U</span>
-                      </div>
-                      <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/30 to-pink-600/30 rounded-2xl blur opacity-75"></div>
-                    </div>
-                  )}
-                </div>
-                <div className={`flex-1 max-w-4xl ${message.role === 'user' ? 'order-1' : ''
-                  }`}>
-                  <div className={`p-5 rounded-2xl shadow-xl relative ${message.role === 'user'
-                    ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white ml-16 border border-purple-400/30'
-                    : 'glass text-white mr-16 border border-gray-600/30'
-                    }`}>
-                    {/* Message timestamp */}
-                    <div className="text-xs opacity-60 mb-2">
-                      {new Date().toLocaleTimeString()}
-                    </div>
-                    <p className="whitespace-pre-wrap leading-relaxed text-base">{message.content}</p>
+                    )}
 
-                    {/* Message actions */}
-                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/10">
-                      <button
-                        onClick={() => copyToClipboard(message.content)}
-                        className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-all duration-200 hover:text-cyan-400"
-                        title="Copy message"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>Copy</span>
-                      </button>
+                    <div className={`max-w-[80%] ${message.role === 'user' ? 'order-1' : ''}`}>
+                      <div className={`p-4 rounded-2xl ${message.role === 'user'
+                          ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white ml-auto'
+                          : 'bg-gray-800/50 text-white border border-gray-700/50'
+                        }`}>
+                        <div className="whitespace-pre-wrap leading-relaxed">
+                          {message.content}
+                        </div>
+                      </div>
+
+                      {/* Message actions */}
                       {message.role === 'assistant' && (
-                        <>
-                          <span className="text-xs opacity-30">•</span>
+                        <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => copyToClipboard(message.content)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded transition-all"
+                            title="Copy message"
+                          >
+                            <Copy className="w-3 h-3" />
+                            Copy
+                          </button>
                           <button
                             onClick={() => regenerateResponse(index)}
                             disabled={isTyping}
-                            className="flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-all duration-200 hover:text-purple-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 rounded transition-all disabled:opacity-50"
                             title="Regenerate response"
                           >
                             <RotateCcw className="w-3 h-3" />
-                            <span>Regenerate</span>
+                            Regenerate
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
+
+                    {message.role === 'user' && (
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                          <span className="text-sm font-bold text-white">U</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))}
 
-          {isTyping && (
-            <div className="flex items-start gap-4 message-assistant">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg">
-                  <Bot className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -inset-1 bg-gradient-to-br from-cyan-500/30 to-blue-600/30 rounded-2xl blur opacity-75"></div>
-              </div>
-              <div className="flex-1 max-w-4xl mr-16">
-                <div className="p-5 rounded-2xl glass border border-gray-600/30 shadow-xl">
-                  <div className="flex items-center gap-4">
-                    <div className="flex gap-1">
-                      <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-cyan-400 animate-pulse" />
-                      <span className="text-gray-300 text-sm font-medium">AI is processing your request...</span>
+              {isTyping && (
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-white" />
                     </div>
                   </div>
-                  <div className="mt-3 h-1 bg-gray-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shimmer-animation"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Enhanced Input Area */}
-      <footer className="sticky bottom-0 w-full glass border-t border-gray-700/50 backdrop-blur-xl relative z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
-            <div className="relative">
-              {/* Input container */}
-              <div className="relative flex items-center glass border border-gray-600/50 rounded-2xl shadow-2xl overflow-hidden focus-within:border-cyan-500/50 transition-colors">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5"></div>
-                <textarea
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask anything... Press Enter to send or Shift+Enter for new line"
-                  className="w-full bg-transparent text-white px-6 py-4 pr-16 rounded-2xl focus:outline-none placeholder-gray-400 text-base relative z-10 resize-none min-h-[56px] max-h-32"
-                  disabled={isTyping}
-                  rows={1}
-                  style={{
-                    height: 'auto',
-                    minHeight: '56px'
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                  }}
-                />
-
-                {/* Send button */}
-                <button
-                  type="submit"
-                  disabled={isTyping || !inputValue.trim() || !isConnected}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl btn-hover-glow group"
-                  title={!isConnected ? 'Disconnected - check your connection' : 'Send message'}
-                >
-                  <Send className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                </button>
-              </div>
-
-              {/* Connection status */}
-              {!isConnected && (
-                <div className="absolute -top-12 left-0 right-0 flex items-center justify-center">
-                  <div className="glass px-4 py-2 rounded-full border border-red-500/30">
-                    <div className="flex items-center gap-2 text-xs text-red-400">
-                      <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
-                      <span>Connection lost - check your network</span>
+                  <div className="flex-1">
+                    <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                        <span className="text-gray-400 text-sm">Neural engine is thinking...</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
+          )}
+        </div>
+      </div>
 
-            {/* Quick info */}
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex items-center gap-4 text-xs text-gray-400">
-                <div className="flex items-center gap-1">
-                  <Activity className="w-3 h-3" />
-                  <span className="hidden sm:inline">Neural Processing Engine</span>
-                  <span className="sm:hidden">Neural Engine</span>
-                </div>
-                <div className="hidden md:flex items-center gap-1">
-                  <Globe2 className="w-3 h-3" />
-                  <span>Distributed Intelligence Network</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500">
-                  {inputValue.length > 0 && `${inputValue.length} chars`}
-                </span>
-                {inputValue.length > 0 && (
-                  <button
-                    type="button"
-                    className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
-                    onClick={() => setInputValue('')}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+      {/* Input Area - Fixed at bottom */}
+      <div className="border-t border-gray-700/50 bg-gray-900/95 backdrop-blur-xl p-4">
+        <div className="max-w-3xl mx-auto">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+            <div className="relative">
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Message NeuroMesh..."
+                className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500/50 resize-none min-h-[52px] max-h-32"
+                disabled={isTyping}
+                rows={1}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isTyping || !inputValue.trim() || !isConnected}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                title={!isConnected ? 'Disconnected - check your connection' : 'Send message'}
+              >
+                <Send className="w-4 h-4 text-white" />
+              </button>
             </div>
           </form>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
@@ -409,22 +275,30 @@ function App() {
     };
 
     checkPeers();
-    const interval = setInterval(checkPeers, 10000); // Check every 10 seconds
+    const interval = setInterval(checkPeers, 10000);
     return () => clearInterval(interval);
   }, []);
 
+  const clearConversation = () => {
+    setConversation([]);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex overflow-hidden">
       <ParticleBackground />
 
-      <Navigation
+      {/* Sidebar */}
+      <Sidebar
         currentPage={currentPage}
         onNavigate={setCurrentPage}
         isConnected={isConnected}
         peerCount={peerCount}
+        conversation={conversation}
+        onClearConversation={clearConversation}
       />
 
-      <main className="relative z-10">
+      {/* Main Content */}
+      <div className="flex-1 ml-64 relative z-10">
         {currentPage === 'chat' ? (
           <ChatPage
             conversation={conversation}
@@ -437,7 +311,7 @@ function App() {
         ) : (
           <PeersConversation />
         )}
-      </main>
+      </div>
     </div>
   );
 }

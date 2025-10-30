@@ -15,7 +15,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     peerCount = 0
 }) => {
     return (
-        <header className="sticky top-0 border-b border-gray-700/50 glass shadow-2xl backdrop-blur-xl relative z-50">
+        <header className="fixed top-0 left-0 right-0 border-b border-gray-700/50 glass shadow-2xl backdrop-blur-xl z-50">
             <div className="max-w-7xl mx-auto px-4 py-4">
                 <div className="flex items-center justify-between">
                     {/* Logo and brand */}
@@ -67,8 +67,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                             <button
                                 onClick={() => onNavigate('chat')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${currentPage === 'chat'
-                                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                                     }`}
                             >
                                 <MessageCircle className="h-4 w-4" />
@@ -77,8 +77,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                             <button
                                 onClick={() => onNavigate('peers')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${currentPage === 'peers'
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                                     }`}
                             >
                                 <Users className="h-4 w-4" />
