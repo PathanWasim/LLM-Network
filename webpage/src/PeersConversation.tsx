@@ -34,16 +34,21 @@ export function PeersConversation() {
 
   useEffect(() => {
     fetchPeerConversations();
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchPeerConversations, 5000);
+    // Refresh every 10 seconds (reduced frequency)
+    const interval = setInterval(() => {
+      // Only refresh if not currently viewing a conversation
+      if (!document.hidden) {
+        fetchPeerConversations();
+      }
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const peerIps = Object.keys(peerConversations);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex-1 overflow-y-auto p-6">
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-6" style={{ scrollBehavior: 'smooth' }}>
         {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -230,7 +235,7 @@ export function PeersConversation() {
                   </div>
                 </div>
 
-                <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar" style={{ scrollBehavior: 'smooth' }}>
                   {peerConversations[selectedPeer].messages.length === 0 ? (
                     <div className="text-center py-8">
                       <div className="text-gray-400 mb-2">No messages yet</div>
@@ -241,7 +246,7 @@ export function PeersConversation() {
                   ) : (
                     peerConversations[selectedPeer].messages.map((message, index) => (
                       <div
-                        key={index}
+                        key={`${message.timestamp}-${index}`}
                         className={`flex items-start gap-4 ${message.message_type === 'Question' ? 'flex-row-reverse' : ''
                           }`}
                       >

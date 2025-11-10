@@ -24,14 +24,30 @@ function ChatPage({
 }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (shouldAutoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  };
+
+  // Check if user is near bottom of scroll
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShouldAutoScroll(isNearBottom);
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
+    // Only scroll if user is already at bottom or it's a new message
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
+  }, [conversation, shouldAutoScroll]);
 
   const handleSendMessage = async () => {
     if (inputValue.trim() === '' || isTyping) return;
@@ -100,9 +116,14 @@ function ChatPage({
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Main Chat Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-6"
+        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="max-w-3xl mx-auto">
           {conversation.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
@@ -149,8 +170,8 @@ function ChatPage({
 
                     <div className={`max-w-[80%] ${message.role === 'user' ? 'order-1' : ''}`}>
                       <div className={`p-4 rounded-2xl ${message.role === 'user'
-                          ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white ml-auto'
-                          : 'bg-gray-800/50 text-white border border-gray-700/50'
+                        ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white ml-auto'
+                        : 'bg-gray-800/50 text-white border border-gray-700/50'
                         }`}>
                         <div className="whitespace-pre-wrap leading-relaxed">
                           {message.content}
