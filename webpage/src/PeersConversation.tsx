@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getPeerConversations, Conversation } from './api/llm';
 import { Bot, Users, Clock, Wifi, WifiOff, User, RefreshCw } from 'lucide-react';
 import { NetworkVisualization } from './components/NetworkVisualization';
@@ -9,19 +9,33 @@ export function PeersConversation() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const conversationScrollRef = React.useRef<HTMLDivElement>(null);
 
-  const fetchPeerConversations = async () => {
+  const fetchPeerConversations = async (isInitialLoad = false) => {
     try {
-      setRefreshing(true);
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
       const conversations = await getPeerConversations();
       console.log('Received peer conversations:', conversations);
-      setPeerConversations(conversations);
+
+      // Only update if data actually changed to prevent unnecessary re-renders
+      const conversationsChanged = JSON.stringify(conversations) !== JSON.stringify(peerConversations);
+      if (conversationsChanged) {
+        setPeerConversations(conversations);
+      }
+
       setError(null);
 
-      // If we have conversations and no peer is selected, select the first one
-      const peerIps = Object.keys(conversations);
-      if (peerIps.length > 0 && !selectedPeer) {
-        setSelectedPeer(peerIps[0]);
+      // Only set initial peer selection, never change it during refresh
+      if (isInitialLoad) {
+        const peerIps = Object.keys(conversations);
+        if (peerIps.length > 0 && !selectedPeer) {
+          setSelectedPeer(peerIps[0]);
+        }
       }
     } catch (err) {
       console.error('Error loading peer conversations:', err);
@@ -33,16 +47,18 @@ export function PeersConversation() {
   };
 
   useEffect(() => {
-    fetchPeerConversations();
+    fetchPeerConversations(true); // Initial load
+
     // Refresh every 10 seconds (reduced frequency)
     const interval = setInterval(() => {
-      // Only refresh if not currently viewing a conversation
+      // Only refresh if not currently viewing a conversation and tab is visible
       if (!document.hidden) {
-        fetchPeerConversations();
+        fetchPeerConversations(false); // Background refresh
       }
     }, 10000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const peerIps = Object.keys(peerConversations);
 
@@ -235,7 +251,11 @@ export function PeersConversation() {
                   </div>
                 </div>
 
-                <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar" style={{ scrollBehavior: 'smooth' }}>
+                <div
+                  ref={conversationScrollRef}
+                  className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar"
+                  style={{ scrollBehavior: 'smooth' }}
+                >
                   {peerConversations[selectedPeer].messages.length === 0 ? (
                     <div className="text-center py-8">
                       <div className="text-gray-400 mb-2">No messages yet</div>

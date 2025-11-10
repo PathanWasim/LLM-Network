@@ -1562,6 +1562,28 @@
         "ip_address": "192.168.0.104",
         "is_llm_host": true
       }
+    },
+    {
+      "content": "What is neural mesh AI?",
+      "timestamp": "2025-11-10T07:30:28.324987200Z",
+      "sender": "user",
+      "message_type": "Question",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.104",
+        "is_llm_host": true
+      }
+    },
+    {
+      "content": "Neural Mesh AI refers to an artificial intelligence system that uses a mesh network of interconnected nodes or agents, each with its own set of neural networks, to process information collectively and efficiently. These systems are designed for tasks that require distributed computing power, such as image recognition, natural language processing, or complex simulations. The \"mesh\" aspect implies a decentralized structure where no single node has complete control, promoting robustness and fault tolerance.",
+      "timestamp": "2025-11-10T07:30:34.251246900Z",
+      "sender": "LLM",
+      "message_type": "Response",
+      "host_info": {
+        "hostname": "Wasim",
+        "ip_address": "192.168.0.104",
+        "is_llm_host": true
+      }
     }
   ],
   "host_info": {
